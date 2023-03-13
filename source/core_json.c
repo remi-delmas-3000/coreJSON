@@ -675,7 +675,7 @@ static bool skipDigits( const char * buf,
                         int32_t * outValue )
 {
     bool ret = false;
-    size_t i, saveStart;
+    size_t i = 0, saveStart = 0;
     int32_t value = 0;
 
     assert( ( buf != NULL ) && ( start != NULL ) && ( max > 0U ) );
@@ -683,6 +683,9 @@ static bool skipDigits( const char * buf,
     saveStart = *start;
 
     for( i = *start; i < max; i++ )
+    __CPROVER_assigns(value, i)
+    __CPROVER_loop_invariant(*start <= i && i <= max)
+    __CPROVER_decreases(max - i)
     {
         if( !isdigit_( buf[ i ] ) )
         {
