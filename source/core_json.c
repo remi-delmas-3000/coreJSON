@@ -102,6 +102,12 @@ static size_t countHighBits( uint8_t c )
     size_t i = 0;
 
     while( ( n & 0x80U ) != 0U )
+    __CPROVER_loop_invariant (
+        (0U <= i) && (i <= 8U) &&
+        (n == (c & (0xFF >> i)) << i) &&
+        (((c >> (8U - i)) + 1U) == (1U << i))
+    )
+    __CPROVER_decreases( 8U - i )
     {
         i++;
         n = ( n & 0x7FU ) << 1U;
@@ -190,9 +196,9 @@ static bool skipUTF8MultiByte( const char * buf,
                                size_t max )
 {
     bool ret = false;
-    size_t i, bitCount, j;
+    size_t i = 0, bitCount = 0, j = 0;
     uint32_t value = 0;
-    char_ c;
+    char_ c = {0};
 
     assert( ( buf != NULL ) && ( start != NULL ) && ( max > 0U ) );
 
@@ -210,6 +216,13 @@ static bool skipUTF8MultiByte( const char * buf,
         /* The bit count is 1 greater than the number of bytes,
          * e.g., when j is 2, we skip one more byte. */
         for( j = bitCount - 1U; j > 0U; j-- )
+        __CPROVER_assigns(j, i, value, c.c)
+        __CPROVER_loop_invariant(
+            (0 <= j) && (j <= bitCount - 1) &&
+            (*start <= i) && (i <= max) &&
+            (i == max ==> j > 0)
+        )
+        __CPROVER_decreases(j)
         {
             i++;
 
