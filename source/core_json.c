@@ -78,6 +78,8 @@ static void skipSpace( const char * buf,
     assert( ( buf != NULL ) && ( start != NULL ) && ( max > 0U ) );
 
     for( i = *start; i < max; i++ )
+    __CPROVER_loop_invariant(i >= *start && i <= max)
+    __CPROVER_decreases(max - i)
     {
         if( !isspace_( buf[ i ] ) )
         {
