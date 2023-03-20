@@ -358,6 +358,12 @@ static bool skipOneHexEscape( const char * buf,
     if( ( end < max ) && ( buf[ i ] == '\\' ) && ( buf[ i + 1U ] == 'u' ) )
     {
         for( i += 2U; i < end; i++ )
+        __CPROVER_assigns(value, i)
+        __CPROVER_loop_invariant(
+            (*start + 2 <= i) && (i <= end) &&
+            (0 <= value) && (value < (1 << (4 * (i - (2 + *start)))))
+        )
+        __CPROVER_decreases(end - i)
         {
             uint8_t n = hexToInt( buf[ i ] );
 
