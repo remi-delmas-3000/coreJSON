@@ -609,6 +609,8 @@ static bool strnEq( const char * a,
     assert( ( a != NULL ) && ( b != NULL ) );
 
     for( i = 0; i < n; i++ )
+    __CPROVER_loop_invariant( i <= n )
+    __CPROVER_decreases( n - i )
     {
         if( a[ i ] != b[ i ] )
         {
