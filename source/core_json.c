@@ -1101,6 +1101,14 @@ static JSONStatus_t skipCollection( const char * buf,
     i = *start;
 
     while( i < max )
+    __CPROVER_assigns( i, depth, c, __CPROVER_object_whole( stack ), ret )
+    __CPROVER_loop_invariant(
+        -1 <= depth && depth <= JSON_MAX_DEPTH
+        && *start <= i && i <= max
+        && ( ( ret == JSONSuccess ) ==> i >= *start + 2 )
+        && ( ret == JSONSuccess || ret == JSONPartial || ret == JSONIllegalDocument || ret == JSONMaxDepthExceeded )
+    )
+    __CPROVER_decreases( max - i )
     {
         c = buf[ i ];
         i++;
@@ -1111,7 +1119,7 @@ static JSONStatus_t skipCollection( const char * buf,
             case '[':
                 depth++;
 
-                if( depth == JSON_MAX_DEPTH )
+                if( depth >= JSON_MAX_DEPTH )
                 {
                     ret = JSONMaxDepthExceeded;
                     break;
@@ -1124,11 +1132,11 @@ static JSONStatus_t skipCollection( const char * buf,
             case '}':
             case ']':
 
-                if( ( depth > 0 ) && isMatchingBracket_( stack[ depth ], c ) )
+                if( ( depth > 0 ) && ( depth < JSON_MAX_DEPTH ) && isMatchingBracket_( stack[ depth ], c ) )
                 {
                     depth--;
 
-                    if( skipSpaceAndComma( buf, &i, max ) == true )
+                    if( skipSpaceAndComma( buf, &i, max ) == true && isOpenBracket_( stack[ depth ] ) )
                     {
                         skipScalars( buf, &i, max, stack[ depth ] );
                     }

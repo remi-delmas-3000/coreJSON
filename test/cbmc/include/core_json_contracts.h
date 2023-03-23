@@ -155,7 +155,7 @@ __CPROVER_ensures( __CPROVER_return_value && buf[ *outValue ] == '"' ==> ( 2 <= 
 JSONStatus_t skipCollection( const char * buf,
                              size_t * start,
                              size_t max )
-__CPROVER_requires( 0 < max && max < CBMC_MAX_BUFSIZE )
+__CPROVER_requires( 0 < max )
 __CPROVER_requires( __CPROVER_is_fresh( buf, max ) )
 __CPROVER_requires( __CPROVER_is_fresh( start, sizeof( *start ) ) )
 __CPROVER_assigns( *start )
