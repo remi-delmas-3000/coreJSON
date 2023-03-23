@@ -990,14 +990,18 @@ static void skipObjectScalars( const char * buf,
                                size_t * start,
                                size_t max )
 {
-    size_t i;
-    bool comma;
+    size_t i = 0;
+    bool comma = false;
 
     assert( ( buf != NULL ) && ( start != NULL ) && ( max > 0U ) );
 
     i = *start;
+    size_t old_start = *start;
 
     while( i < max )
+    __CPROVER_assigns(i, *start, comma)
+    __CPROVER_loop_invariant( i <= max && *start >= old_start && *start <= max )
+    __CPROVER_decreases( max - i )
     {
         if( skipString( buf, &i, max ) != true )
         {
