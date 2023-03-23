@@ -12,8 +12,6 @@ CBMC_OBJECT_BITS = 10
 
 USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver cadical
 
-#UNWINDSET += skipString.0:$(CBMC_MAX_BUFSIZE)
-
 USE_FUNCTION_CONTRACTS += skipEscape
 USE_FUNCTION_CONTRACTS += skipUTF8
 
