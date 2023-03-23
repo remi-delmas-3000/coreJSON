@@ -206,7 +206,8 @@ __CPROVER_requires( 0 < max )
 __CPROVER_requires( __CPROVER_is_fresh( buf, max ) )
 __CPROVER_requires( __CPROVER_is_fresh( start, sizeof( *start ) ) )
 __CPROVER_assigns( *start )
-__CPROVER_ensures( ( __CPROVER_old( *start ) < max ) ? ( ( *start <= max ) && ( *start >= __CPROVER_old( *start ) ) ) : ( *start == __CPROVER_old( *start ) ) );
+__CPROVER_ensures( *start >= __CPROVER_old( *start ) )
+__CPROVER_ensures( ( __CPROVER_old( *start ) < max ) ? ( ( *start <= max ) ) : ( *start == __CPROVER_old( *start ) ) );
 
 bool skipString( const char * buf,
                  size_t * start,

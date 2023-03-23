@@ -999,18 +999,19 @@ static void skipObjectScalars( const char * buf,
     assert( ( buf != NULL ) && ( start != NULL ) && ( max > 0U ) );
 
     i = *start;
-    size_t old_start = *start;
 
     while( i < max )
     __CPROVER_assigns(i, *start, comma)
-    __CPROVER_loop_invariant( i <= max && *start >= old_start && *start <= max )
+    __CPROVER_loop_invariant( i <= max && *start >= __CPROVER_loop_entry(i) && *start <= max )
     __CPROVER_decreases( max - i )
     {
+        size_t felipe_before_skipString = i;
         if( skipString( buf, &i, max ) != true )
         {
             break;
         }
 
+        size_t felipe_before_first_skipSpace = i;
         skipSpace( buf, &i, max );
 
         if( ( i < max ) && ( buf[ i ] != ':' ) )
@@ -1019,7 +1020,9 @@ static void skipObjectScalars( const char * buf,
         }
 
         i++;
+        size_t felipe_before_second_skipSpace = i;
         skipSpace( buf, &i, max );
+        size_t felipe_after_first_skipSpace = i;
 
         if( ( i < max ) && isOpenBracket_( buf[ i ] ) )
         {
@@ -1027,11 +1030,13 @@ static void skipObjectScalars( const char * buf,
             break;
         }
 
+        size_t felipe_before_skipAnyScalar = i;
         if( skipAnyScalar( buf, &i, max ) != true )
         {
             break;
         }
 
+        size_t felipe_before_skipSpaceAndComma = i;
         comma = skipSpaceAndComma( buf, &i, max );
         *start = i;
 
