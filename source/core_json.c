@@ -543,6 +543,14 @@ static bool skipString( const char * buf,
         i++;
 
         while( i < max )
+        __CPROVER_assigns(i, ret)
+        __CPROVER_loop_invariant(
+            ( ( ret == true ) || ( ret == false ) )
+            && i >= *start 
+            && i <= max
+            && ((ret == true) ==> (i >= (*start + 2)))
+        )
+        __CPROVER_decreases(max - i)
         {
             if( buf[ i ] == '"' )
             {
