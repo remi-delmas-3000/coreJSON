@@ -956,6 +956,9 @@ static void skipArrayScalars( const char * buf,
     i = *start;
 
     while( i < max )
+    __CPROVER_assigns(i)
+    __CPROVER_loop_invariant( *start <= i && i <= max )
+    __CPROVER_decreases( max - i )
     {
         if( skipAnyScalar( buf, &i, max ) != true )
         {
