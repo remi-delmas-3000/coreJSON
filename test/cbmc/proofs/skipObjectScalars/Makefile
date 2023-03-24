@@ -12,7 +12,7 @@ USE_DYNAMIC_FRAMES = 1
 
 CBMC_OBJECT_BITS = 12
 
-USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver cadical
+USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver kissat
 
 USE_FUNCTION_CONTRACTS += skipSpace
 USE_FUNCTION_CONTRACTS += skipAnyScalar

@@ -546,16 +546,17 @@ static bool skipString( const char * buf,
         __CPROVER_assigns(i, ret)
         __CPROVER_loop_invariant(
             ( ( ret == true ) || ( ret == false ) )
-            && i >= *start 
-            && i <= max
+            && *start + 1 <= i && i <= max
             && ((ret == true) ==> (i >= (*start + 2)))
         )
         __CPROVER_decreases(max - i)
         {
+            size_t felipe_i_begining = i;
             if( buf[ i ] == '"' )
             {
                 ret = true;
                 i++;
+                size_t felipe_i_true_case = i;
                 break;
             }
 
@@ -563,16 +564,19 @@ static bool skipString( const char * buf,
             {
                 if( skipEscape( buf, &i, max ) != true )
                 {
+                    size_t felipe_i_skipEscape = i;
                     break;
                 }
             }
             /* An unescaped control character is not allowed. */
             else if( iscntrl_( buf[ i ] ) )
             {
+                size_t felipe_i_iscntrl_ = i;
                 break;
             }
             else if( skipUTF8( buf, &i, max ) != true )
             {
+                size_t felipe_i_skipUTF8 = i;
                 break;
             }
             else
@@ -1002,7 +1006,11 @@ static void skipObjectScalars( const char * buf,
 
     while( i < max )
     __CPROVER_assigns(i, *start, comma)
-    __CPROVER_loop_invariant( i <= max && *start >= __CPROVER_loop_entry(i) && *start <= max )
+    __CPROVER_loop_invariant(
+        i >= *start
+        && __CPROVER_loop_entry(i) <= i && i <= max
+        && __CPROVER_loop_entry(*start) <= *start && *start <= max
+    )
     __CPROVER_decreases( max - i )
     {
         size_t felipe_before_skipString = i;
@@ -1106,7 +1114,7 @@ static JSONStatus_t skipCollection( const char * buf,
     i = *start;
 
     while( i < max )
-    __CPROVER_assigns( i, depth, c, __CPROVER_object_whole( stack ), ret )
+    __CPROVER_assigns( i, depth, c, __CPROVER_object_whole(stack), ret )
     __CPROVER_loop_invariant(
         -1 <= depth && depth <= JSON_MAX_DEPTH
         && *start <= i && i <= max
@@ -1250,7 +1258,7 @@ static bool nextValue( const char * buf,
                        size_t * valueLength )
 {
     bool ret = true;
-    size_t i, valueStart;
+    size_t i = 0, valueStart = 0;
 
     assert( ( buf != NULL ) && ( start != NULL ) && ( max > 0U ) );
     assert( ( value != NULL ) && ( valueLength != NULL ) );
@@ -1314,8 +1322,8 @@ static bool nextKeyValuePair( const char * buf,
 
     if( skipString( buf, &i, max ) == true )
     {
-        *key = keyStart + 1U;
-        *keyLength = i - keyStart - 2U;
+        *key = keyStart + 1U; /* 1U to skip `"` */
+        *keyLength = i - keyStart - 2U; /* 2U to skip `""` */
     }
     else
     {
@@ -1376,7 +1384,7 @@ static bool objectSearch( const char * buf,
 {
     bool ret = false;
 
-    size_t i = 0, key, keyLength, value = 0, valueLength = 0;
+    size_t i = 0, key = 0, keyLength = 0, value = 0, valueLength = 0;
 
     assert( ( buf != NULL ) && ( query != NULL ) );
     assert( ( outValue != NULL ) && ( outValueLength != NULL ) );
@@ -1389,6 +1397,16 @@ static bool objectSearch( const char * buf,
         skipSpace( buf, &i, max );
 
         while( i < max )
+        __CPROVER_assigns( i, ret, key, keyLength, value, valueLength )
+        __CPROVER_loop_invariant(
+            __CPROVER_loop_entry(i) <= i && i <= max
+            && ( ( ret == true ) || ( ret == false) )
+            && ( ret ==> ( 0 <  valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
+            && ( ret ==> ( value <= i - valueLength) && ( value < max ) )
+            && ( (ret && buf[ value ] == '"' ) ==> ( 2 <= valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
+            && ( ret ==> ( key < value ) )
+        )
+        __CPROVER_decreases( max - i )
         {
             if( nextKeyValuePair( buf, &i, max, &key, &keyLength,
                                   &value, &valueLength ) != true )
@@ -1456,6 +1474,16 @@ static bool arraySearch( const char * buf,
         skipSpace( buf, &i, max );
 
         while( i < max )
+        __CPROVER_assigns( i, ret, currentIndex, value, valueLength )
+        __CPROVER_loop_invariant(
+            __CPROVER_loop_entry(i) <= i && i <= max
+            && currentIndex < i
+            && ( ( ret == true ) || ( ret == false) )
+            && ( ret ==> ( 0 <  valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
+            && ( ret ==> ( value <= i - valueLength) && ( value < max ) )
+            && ( (ret && buf[ value ] == '"' ) ==> ( 2 <= valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
+        )
+        __CPROVER_decreases( max - i )
         {
             if( nextValue( buf, &i, max, &value, &valueLength ) != true )
             {
@@ -1468,7 +1496,7 @@ static bool arraySearch( const char * buf,
                 break;
             }
 
-            if( skipSpaceAndComma( buf, &i, max ) != true )
+            if( skipSpaceAndComma( buf, &i, max ) != true || currentIndex == UINT32_MAX )
             {
                 break;
             }
@@ -1520,6 +1548,9 @@ static bool skipQueryPart( const char * buf,
     while( ( i < max ) &&
            !isSeparator_( buf[ i ] ) &&
            !isSquareOpen_( buf[ i ] ) )
+    __CPROVER_assigns( i )
+    __CPROVER_loop_invariant( i  <= max )
+    __CPROVER_decreases( max - i )
     {
         i++;
     }
@@ -1566,6 +1597,9 @@ static JSONStatus_t multiSearch( const char * buf,
     assert( ( max > 0U ) && ( queryLength > 0U ) );
 
     while( i < queryLength )
+    __CPROVER_assigns(i, ret, start, queryStart, value, length)
+    __CPROVER_loop_invariant( i <= queryLength )
+    __CPROVER_decreases( queryLength - i )
     {
         bool found = false;
 
