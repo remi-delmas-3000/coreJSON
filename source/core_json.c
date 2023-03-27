@@ -1598,7 +1598,15 @@ static JSONStatus_t multiSearch( const char * buf,
 
     while( i < queryLength )
     __CPROVER_assigns(i, ret, start, queryStart, value, length)
-    __CPROVER_loop_invariant( i <= queryLength )
+    __CPROVER_loop_invariant(
+        length > 0 && length <= max
+        && 0 <= i && i <= queryLength
+        && 0 <= queryStart && queryStart <= queryLength
+        && ( ( ( ( ( ret == JSONPartial ) || ( ret == JSONIllegalDocument ) || ( ret == JSONMaxDepthExceeded ) ) || ( ret == JSONSuccess ) ) || ( ( ret == JSONNullParameter ) || ( ret == JSONBadParameter ) ) ) || ( ret == JSONNotFound ) )
+        && value <= max
+        && start <= value
+        && ( ret == JSONSuccess) ==> ( ( start >= buf ) && ( ( start + length ) <= ( buf + max ) ) )
+    )
     __CPROVER_decreases( queryLength - i )
     {
         bool found = false;
