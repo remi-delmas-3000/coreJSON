@@ -144,7 +144,7 @@ __CPROVER_assigns( *outValue )
 __CPROVER_assigns( *outValueLength )
 __CPROVER_ensures( isBool( __CPROVER_return_value ) )
 __CPROVER_ensures( __CPROVER_return_value ? ( 0 <= *outValue && *outValue < max ) : ( *outValue == __CPROVER_old( *outValue ) ) )
-__CPROVER_ensures( __CPROVER_return_value ? ( 0 < *outValueLength && ( *outValueLength <= *outValueLength <= max - *outValue ) ) : ( *outValueLength == __CPROVER_old( *outValueLength ) ) )
+__CPROVER_ensures( __CPROVER_return_value ? ( 0 < *outValueLength && *outValueLength <= max - *outValue ) : ( *outValueLength == __CPROVER_old( *outValueLength ) ) )
 __CPROVER_ensures( __CPROVER_return_value && buf[ *outValue ] == '"' ==> ( 2 <= *outValueLength && *outValueLength <= max - *outValue ) );
 
 JSONStatus_t skipCollection( const char * buf,

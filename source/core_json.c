@@ -1588,6 +1588,16 @@ static JSONStatus_t multiSearch( const char * buf,
                                  size_t queryLength,
                                  size_t * outValue,
                                  size_t * outValueLength )
+__CPROVER_requires( max > 0U && queryLength > 0U )
+__CPROVER_requires( __CPROVER_is_fresh( buf, max ) )
+__CPROVER_requires( __CPROVER_is_fresh( query, queryLength ) )
+__CPROVER_requires( __CPROVER_is_fresh( outValue, sizeof( *outValue ) ) )
+__CPROVER_requires( __CPROVER_is_fresh( outValueLength, sizeof( *outValueLength ) ) )
+
+__CPROVER_assigns( *outValue )
+__CPROVER_assigns( *outValueLength )
+
+__CPROVER_ensures( ( ( ( ( ( __CPROVER_return_value == JSONPartial ) || ( __CPROVER_return_value == JSONIllegalDocument ) || ( __CPROVER_return_value == JSONMaxDepthExceeded ) ) || ( __CPROVER_return_value == JSONSuccess ) ) || ( ( __CPROVER_return_value == JSONNullParameter ) || ( __CPROVER_return_value == JSONBadParameter ) ) ) || ( __CPROVER_return_value == JSONNotFound ) ) )
 {
     JSONStatus_t ret = JSONSuccess;
     size_t i = 0, start = 0, queryStart = 0, value = 0, length = max;
@@ -1596,21 +1606,21 @@ static JSONStatus_t multiSearch( const char * buf,
     assert( ( outValue != NULL ) && ( outValueLength != NULL ) );
     assert( ( max > 0U ) && ( queryLength > 0U ) );
 
+    bool run_once = false;
     while( i < queryLength )
-    __CPROVER_assigns(i, ret, start, queryStart, value, length)
+    __CPROVER_assigns(i, run_once, start, queryStart, value, length)
     __CPROVER_loop_invariant(
-        length > 0 && length <= max
+        0 <= start && start < max
+        && 0 < length && length <= max
+        && start + length <= max
+        && 0 <= value && value < max
         && 0 <= i && i <= queryLength
         && 0 <= queryStart && queryStart <= queryLength
-        && ( ( ( ( ( ret == JSONPartial ) || ( ret == JSONIllegalDocument ) || ( ret == JSONMaxDepthExceeded ) ) || ( ret == JSONSuccess ) ) || ( ( ret == JSONNullParameter ) || ( ret == JSONBadParameter ) ) ) || ( ret == JSONNotFound ) )
-        && value <= max
-        && start <= value
-        && ( ret == JSONSuccess) ==> ( ( start >= buf ) && ( ( start + length ) <= ( buf + max ) ) )
+        && ( run_once && buf[ value ] == '"' ) ==> ( 2 <= length )
     )
     __CPROVER_decreases( queryLength - i )
     {
         bool found = false;
-
         if( isSquareOpen_( query[ i ] ) )
         {
             int32_t queryIndex = -1;
@@ -1628,6 +1638,7 @@ static JSONStatus_t multiSearch( const char * buf,
             i++;
 
             found = arraySearch( &buf[ start ], length, ( uint32_t ) queryIndex, &value, &length );
+            assert(false);
         }
         else
         {
@@ -1642,8 +1653,8 @@ static JSONStatus_t multiSearch( const char * buf,
                 ret = JSONBadParameter;
                 break;
             }
-
-            found = objectSearch( &buf[ start ], length, &query[ queryStart ], keyLength, &value, &length );
+            found = objectSearch( &buf[ start ], length, &query[ queryStart ], keyLength, &value, &length );    
+            assert(false);     
         }
 
         if( found == false )
@@ -1658,6 +1669,7 @@ static JSONStatus_t multiSearch( const char * buf,
         {
             i++;
         }
+        run_once = true;
     }
 
     if( ret == JSONSuccess )
