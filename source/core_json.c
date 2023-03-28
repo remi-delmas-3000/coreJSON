@@ -1619,49 +1619,7 @@ __CPROVER_ensures( (__CPROVER_return_value == JSONSuccess && buf[*outValue] == '
             }
 
             i++;
-            char dummy_buf_value_before = buf[value];
-            size_t dummy_value_before = value;
-            size_t dummy_length_before = length;
-            size_t dummy_start_before = start;
-            size_t dummy_max_before = max;
-            /*
             found = arraySearch( &buf[ start ], length, ( uint32_t ) queryIndex, &value, &length );
-            */
-            /* manual inlining of the contract */
-            const char * _buf = &buf[ start ];
-            size_t _max = length;
-            uint32_t _queryIndex = (uint32_t) queryIndex;
-            size_t * _outValue = &value;
-            size_t * _outValueLength = &length;
-            size_t _oldOutValue = *_outValue;
-            size_t _oldOutValueLength = *_outValueLength;
-            assert( 0 < _max );
-            assert( __CPROVER_r_ok( _buf, _max ) );
-            assert( __CPROVER_w_ok( _outValue, sizeof( *_outValue ) ) );
-            assert( __CPROVER_w_ok( _outValueLength, sizeof( *_outValueLength ) ) );
-            assert( *_outValueLength <= _max );
-            *_outValue = nondet_size_t();
-            *_outValueLength = nondet_size_t();
-            bool _retval = nondet_bool();
-            __CPROVER_assume( _retval == true || _retval == false );
-            __CPROVER_assume( _retval ? ( 0 <= *_outValue && *_outValue < _max ) : ( *_outValue == _oldOutValue ) );
-            __CPROVER_assume( _retval ? ( 0 < *_outValueLength && *_outValueLength <= _max - *_outValue ) : ( *_outValueLength == _oldOutValueLength ) );
-            __CPROVER_assume( (_retval && _buf[ *_outValue ] == '"') ==> (2 <= *_outValueLength));
-            found = _retval;
-
-            if(found) {
-                dummy_max_before = dummy_max_before;
-                size_t dummy_max = max;
-                dummy_start_before = dummy_start_before;
-                size_t dummy_start = start;
-                dummy_value_before = dummy_value_before;
-                size_t dummy_value = value;
-                dummy_buf_value_before = dummy_buf_value_before;
-                char dummy_buf_value = buf[start + value];
-                dummy_length_before = dummy_length_before;
-                size_t dummy_length = length;
-                assert((buf[start + value] == '"') ==> length >= 2);
-            }
         }
         else
         {
@@ -1676,50 +1634,7 @@ __CPROVER_ensures( (__CPROVER_return_value == JSONSuccess && buf[*outValue] == '
                 ret = JSONBadParameter;
                 break;
             }
-            char dummy_buf_value_before = buf[value];
-            size_t dummy_value_before = value;
-            size_t dummy_length_before = length;
-            size_t dummy_start_before = start;
-            size_t dummy_max_before = max;
-            /*
             found = objectSearch( &buf[ start ], length, &query[ queryStart ], keyLength, &value, &length );
-            */
-            const char * _buf = &buf[ start ];
-            size_t _max = length;
-            char * _query = (uint32_t) &query[ queryStart ];
-            size_t _queryLength = keyLength;
-            size_t * _outValue = &value;
-            size_t * _outValueLength = &length;
-            size_t _oldOutValue = *_outValue;
-            size_t _oldOutValueLength = *_outValueLength;
-            assert( 0 < _max );
-            assert( __CPROVER_r_ok( _buf, _max ) );
-            assert( __CPROVER_r_ok( _query, _queryLength ) );
-            assert( __CPROVER_w_ok( _outValue, sizeof( *_outValue ) ) );
-            assert( __CPROVER_w_ok( _outValueLength, sizeof( *_outValueLength ) ) );
-            assert( *_outValueLength <= _max );
-            *_outValue = nondet_size_t();
-            *_outValueLength = nondet_size_t();
-            bool _retval = nondet_bool();
-            __CPROVER_assume( _retval == true || _retval == false );
-            __CPROVER_assume( _retval ? ( 0 <= *_outValue && *_outValue < _max ) : ( *_outValue == _oldOutValue ) );
-            __CPROVER_assume( _retval ? ( 0 < *_outValueLength && *_outValueLength <= _max - *_outValue ) : ( *_outValueLength == _oldOutValueLength ) );
-            __CPROVER_assume( (_retval && _buf[ *_outValue ] == '"') ==> (2 <= *_outValueLength));
-            found = _retval;
-            if(found) {
-                dummy_max_before = dummy_max_before;
-                size_t dummy_max = max;
-                dummy_start_before = dummy_start_before;
-                size_t dummy_start = start;
-                dummy_value_before = dummy_value_before;
-                size_t dummy_value = value;
-                dummy_buf_value_before = dummy_buf_value_before;
-                char dummy_buf_value = buf[start + value];
-                dummy_length_before = dummy_length_before;
-                size_t dummy_length = length;
-                assert((buf[start + value] == '"') ==> length >= 2);
-            }
-
         }
 
         if( found == false )
