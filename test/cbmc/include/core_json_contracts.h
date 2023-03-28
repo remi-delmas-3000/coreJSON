@@ -68,6 +68,15 @@
  */
 
 /* *INDENT-OFF* */
+bool post_JSON_SearchConst(JSONStatus_t status, char *buf, char **outValue, size_t *outValueLength, size_t max) 
+{
+  if(status == JSONSuccess) {
+    char *endOfValue = *outValue + *outValueLength;
+    char *endOfBuf = buf + max;
+    return __CPROVER_pointer_in_range_dfcc( buf, endOfValue , endOfBuf);
+  }
+  return true;
+}
 
 JSONStatus_t JSON_SearchConst( const char * buf,
                                size_t max,
@@ -76,16 +85,16 @@ JSONStatus_t JSON_SearchConst( const char * buf,
                                const char ** outValue,
                                size_t * outValueLength,
                                JSONTypes_t * outType )
-__CPROVER_requires( buf == NULL || __CPROVER_is_fresh( buf, max ) )
-__CPROVER_requires( query == NULL || __CPROVER_is_fresh( query, queryLength ) )
+__CPROVER_requires( buf == NULL || __CPROVER_is_fresh( buf, max ))
+__CPROVER_requires( query == NULL || __CPROVER_is_fresh( query, queryLength ))
 __CPROVER_requires( outValue == NULL || __CPROVER_is_fresh( outValue, sizeof( *outValue ) ) )
 __CPROVER_requires( outValueLength == NULL || __CPROVER_is_fresh( outValueLength, sizeof( *outValueLength ) ) )
-__CPROVER_requires( outType == NULL || __CPROVER_is_fresh( outType, sizeof( *outType ) ) )
-__CPROVER_assigns( *outValue )
-__CPROVER_assigns( *outValueLength )
-__CPROVER_assigns( *outType )
-__CPROVER_ensures( isJSONSearchEnum( __CPROVER_return_value ) )
-__CPROVER_ensures( __CPROVER_return_value == JSONSuccess ==> ( ( *outValue >= buf ) && ( ( *outValue + *outValueLength ) <= ( buf + max ) ) ) );
+__CPROVER_requires(__CPROVER_is_fresh( outType, sizeof( *outType ) ) )
+__CPROVER_assigns( *outValue, *outValueLength, *outType )
+__CPROVER_ensures(isJSONSearchEnum( __CPROVER_return_value ))
+__CPROVER_ensures(__CPROVER_return_value == JSONSuccess ==> __CPROVER_pointer_in_range_dfcc( buf,  *outValue , buf + max))
+__CPROVER_ensures(post_JSON_SearchConst(__CPROVER_return_value, buf, outValue, outValueLength, max))
+;
 
 JSONStatus_t JSON_Iterate( const char * buf,
                            size_t max,
@@ -127,7 +136,7 @@ __CPROVER_assigns( *outValueLength )
 __CPROVER_ensures( isBool( __CPROVER_return_value ) )
 __CPROVER_ensures( __CPROVER_return_value ? ( 0 <= *outValue && *outValue < max ) : ( *outValue == __CPROVER_old( *outValue ) ) )
 __CPROVER_ensures( __CPROVER_return_value ? ( 0 < *outValueLength && *outValueLength <= max - *outValue ) : ( *outValueLength == __CPROVER_old( *outValueLength ) ) )
-__CPROVER_ensures( __CPROVER_return_value && buf[ *outValue ] == '"' ==> ( 2 <= *outValueLength && *outValueLength <= max - *outValue ) );
+__CPROVER_ensures( (__CPROVER_return_value && (buf[ *outValue ] == '"') ==> (2 <= *outValueLength)));
 
 bool objectSearch( const char * buf,
                    size_t max,
@@ -145,7 +154,37 @@ __CPROVER_assigns( *outValueLength )
 __CPROVER_ensures( isBool( __CPROVER_return_value ) )
 __CPROVER_ensures( __CPROVER_return_value ? ( 0 <= *outValue && *outValue < max ) : ( *outValue == __CPROVER_old( *outValue ) ) )
 __CPROVER_ensures( __CPROVER_return_value ? ( 0 < *outValueLength && *outValueLength <= max - *outValue ) : ( *outValueLength == __CPROVER_old( *outValueLength ) ) )
-__CPROVER_ensures( __CPROVER_return_value && buf[ *outValue ] == '"' ==> ( 2 <= *outValueLength && *outValueLength <= max - *outValue ) );
+__CPROVER_ensures( (__CPROVER_return_value && buf[ *outValue ] == '"') ==> ( 2 <= *outValueLength && *outValueLength <= max - *outValue ) );
+
+#if 0
+TODO this contract is sufficient to prove SearchConst
+static JSONStatus_t multiSearch( const char * buf,
+                                 size_t max,
+                                 const char * query,
+                                 size_t queryLength,
+                                 size_t * outValue,
+                                 size_t * outValueLength )
+__CPROVER_requires( max > 0U && queryLength > 0U )
+__CPROVER_requires( __CPROVER_is_fresh( buf, max ) )
+__CPROVER_requires( __CPROVER_is_fresh( query, queryLength ) )
+__CPROVER_requires( __CPROVER_is_fresh( outValue, sizeof( *outValue ) ) )
+__CPROVER_requires( __CPROVER_is_fresh( outValueLength, sizeof( *outValueLength ) ) )
+__CPROVER_assigns( *outValue )
+__CPROVER_assigns( *outValueLength )
+__CPROVER_ensures(
+   ( __CPROVER_return_value == JSONPartial )
+|| ( __CPROVER_return_value == JSONIllegalDocument )
+|| ( __CPROVER_return_value == JSONMaxDepthExceeded )
+|| ( __CPROVER_return_value == JSONSuccess )
+|| ( __CPROVER_return_value == JSONNullParameter )
+|| ( __CPROVER_return_value == JSONBadParameter )
+|| ( __CPROVER_return_value == JSONNotFound )
+)
+__CPROVER_ensures( __CPROVER_return_value == JSONSuccess ? ( *outValue < max ) : ( *outValue == __CPROVER_old( *outValue ) ) )
+__CPROVER_ensures( __CPROVER_return_value == JSONSuccess ? ( 0 < *outValueLength && *outValueLength <= max - *outValue ) : ( *outValueLength == __CPROVER_old( *outValueLength ) ) )
+__CPROVER_ensures( __CPROVER_return_value == JSONSuccess ==> (buf[*outValue] == '"' ==> *outValueLength >= 2) )
+;
+#endif
 
 JSONStatus_t skipCollection( const char * buf,
                              size_t * start,
@@ -214,8 +253,8 @@ __CPROVER_assigns( *start )
 __CPROVER_ensures( isBool( __CPROVER_return_value ) )
 __CPROVER_ensures( *start >= __CPROVER_old( *start ) )
 __CPROVER_ensures( ( __CPROVER_old( *start ) < max ) ? ( ( *start <= max ) ) : ( *start == __CPROVER_old( *start ) ) )
-__CPROVER_ensures( (__CPROVER_return_value == true) ==> ( __CPROVER_old( *start ) < max ) )
-__CPROVER_ensures( (__CPROVER_return_value == true) ==> ( *start >= __CPROVER_old( *start ) + 2 ) );
+__CPROVER_ensures( __CPROVER_return_value ==> ( __CPROVER_old( *start ) < max ) )
+__CPROVER_ensures( __CPROVER_return_value ==> ( *start >= __CPROVER_old( *start ) + 2 ) );
 
 bool skipEscape( const char * buf,
                  size_t * start,

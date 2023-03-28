@@ -543,20 +543,14 @@ static bool skipString( const char * buf,
         i++;
 
         while( i < max )
-        __CPROVER_assigns(i, ret)
-        __CPROVER_loop_invariant(
-            ( ( ret == true ) || ( ret == false ) )
-            && *start + 1 <= i && i <= max
-            && ((ret == true) ==> (i >= (*start + 2)))
-        )
+        __CPROVER_assigns(i)
+        __CPROVER_loop_invariant(*start + 1 <= i && i <= max)
         __CPROVER_decreases(max - i)
         {
-            size_t felipe_i_begining = i;
             if( buf[ i ] == '"' )
             {
                 ret = true;
                 i++;
-                size_t felipe_i_true_case = i;
                 break;
             }
 
@@ -564,19 +558,16 @@ static bool skipString( const char * buf,
             {
                 if( skipEscape( buf, &i, max ) != true )
                 {
-                    size_t felipe_i_skipEscape = i;
                     break;
                 }
             }
             /* An unescaped control character is not allowed. */
             else if( iscntrl_( buf[ i ] ) )
             {
-                size_t felipe_i_iscntrl_ = i;
                 break;
             }
             else if( skipUTF8( buf, &i, max ) != true )
             {
-                size_t felipe_i_skipUTF8 = i;
                 break;
             }
             else
@@ -1397,15 +1388,8 @@ static bool objectSearch( const char * buf,
         skipSpace( buf, &i, max );
 
         while( i < max )
-        __CPROVER_assigns( i, ret, key, keyLength, value, valueLength )
-        __CPROVER_loop_invariant(
-            __CPROVER_loop_entry(i) <= i && i <= max
-            && ( ( ret == true ) || ( ret == false) )
-            && ( ret ==> ( 0 <  valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
-            && ( ret ==> ( value <= i - valueLength) && ( value < max ) )
-            && ( (ret && buf[ value ] == '"' ) ==> ( 2 <= valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
-            && ( ret ==> ( key < value ) )
-        )
+        __CPROVER_assigns( i, key, keyLength, value, valueLength )
+        __CPROVER_loop_invariant( __CPROVER_loop_entry(i) <= i && i <= max )
         __CPROVER_decreases( max - i )
         {
             if( nextKeyValuePair( buf, &i, max, &key, &keyLength,
@@ -1474,15 +1458,8 @@ static bool arraySearch( const char * buf,
         skipSpace( buf, &i, max );
 
         while( i < max )
-        __CPROVER_assigns( i, ret, currentIndex, value, valueLength )
-        __CPROVER_loop_invariant(
-            __CPROVER_loop_entry(i) <= i && i <= max
-            && currentIndex < i
-            && ( ( ret == true ) || ( ret == false) )
-            && ( ret ==> ( 0 <  valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
-            && ( ret ==> ( value <= i - valueLength) && ( value < max ) )
-            && ( (ret && buf[ value ] == '"' ) ==> ( 2 <= valueLength && valueLength <= i - __CPROVER_loop_entry(i) ) )
-        )
+        __CPROVER_assigns(i, currentIndex, value, valueLength )
+        __CPROVER_loop_invariant(__CPROVER_loop_entry(i) <= i && i <= max && currentIndex < i)
         __CPROVER_decreases( max - i )
         {
             if( nextValue( buf, &i, max, &value, &valueLength ) != true )
@@ -1500,7 +1477,6 @@ static bool arraySearch( const char * buf,
             {
                 break;
             }
-
             currentIndex++;
         }
     }
@@ -1564,7 +1540,8 @@ static bool skipQueryPart( const char * buf,
 
     return ret;
 }
-
+size_t nondet_size_t();
+bool nondet_bool();
 /**
  * @brief Handle a nested search by iterating over the parts of the query.
  *
@@ -1593,30 +1570,36 @@ __CPROVER_requires( __CPROVER_is_fresh( buf, max ) )
 __CPROVER_requires( __CPROVER_is_fresh( query, queryLength ) )
 __CPROVER_requires( __CPROVER_is_fresh( outValue, sizeof( *outValue ) ) )
 __CPROVER_requires( __CPROVER_is_fresh( outValueLength, sizeof( *outValueLength ) ) )
-
-__CPROVER_assigns( *outValue )
-__CPROVER_assigns( *outValueLength )
-
-__CPROVER_ensures( ( ( ( ( ( __CPROVER_return_value == JSONPartial ) || ( __CPROVER_return_value == JSONIllegalDocument ) || ( __CPROVER_return_value == JSONMaxDepthExceeded ) ) || ( __CPROVER_return_value == JSONSuccess ) ) || ( ( __CPROVER_return_value == JSONNullParameter ) || ( __CPROVER_return_value == JSONBadParameter ) ) ) || ( __CPROVER_return_value == JSONNotFound ) ) )
+__CPROVER_assigns( *outValue, *outValueLength )
+__CPROVER_ensures(
+   ( __CPROVER_return_value == JSONPartial )
+|| ( __CPROVER_return_value == JSONIllegalDocument )
+|| ( __CPROVER_return_value == JSONMaxDepthExceeded )
+|| ( __CPROVER_return_value == JSONSuccess )
+|| ( __CPROVER_return_value == JSONNullParameter )
+|| ( __CPROVER_return_value == JSONBadParameter )
+|| ( __CPROVER_return_value == JSONNotFound )
+)
+__CPROVER_ensures( __CPROVER_return_value == JSONSuccess ? ( *outValue < max ) : ( *outValue == __CPROVER_old( *outValue ) ) )
+__CPROVER_ensures( __CPROVER_return_value == JSONSuccess ? ( 0 < *outValueLength && *outValueLength <= max - *outValue ) : ( *outValueLength == __CPROVER_old( *outValueLength ) ) )
+__CPROVER_ensures( (__CPROVER_return_value == JSONSuccess && buf[*outValue] == '"') ==> *outValueLength >= 2)
 {
     JSONStatus_t ret = JSONSuccess;
     size_t i = 0, start = 0, queryStart = 0, value = 0, length = max;
-
     assert( ( buf != NULL ) && ( query != NULL ) );
     assert( ( outValue != NULL ) && ( outValueLength != NULL ) );
     assert( ( max > 0U ) && ( queryLength > 0U ) );
 
-    bool run_once = false;
     while( i < queryLength )
-    __CPROVER_assigns(i, run_once, start, queryStart, value, length)
+    __CPROVER_assigns(i, start, queryStart, value, length)
     __CPROVER_loop_invariant(
-        0 <= start && start < max
+           0 <= start && start < max
         && 0 < length && length <= max
         && start + length <= max
+        && ((i == queryLength && ret == JSONSuccess && buf[start] == '"') ==> length >= 2 )
         && 0 <= value && value < max
         && 0 <= i && i <= queryLength
         && 0 <= queryStart && queryStart <= queryLength
-        && ( run_once && buf[ value ] == '"' ) ==> ( 2 <= length )
     )
     __CPROVER_decreases( queryLength - i )
     {
@@ -1636,9 +1619,49 @@ __CPROVER_ensures( ( ( ( ( ( __CPROVER_return_value == JSONPartial ) || ( __CPRO
             }
 
             i++;
-
+            char dummy_buf_value_before = buf[value];
+            size_t dummy_value_before = value;
+            size_t dummy_length_before = length;
+            size_t dummy_start_before = start;
+            size_t dummy_max_before = max;
+            /*
             found = arraySearch( &buf[ start ], length, ( uint32_t ) queryIndex, &value, &length );
-            assert(false);
+            */
+            /* manual inlining of the contract */
+            const char * _buf = &buf[ start ];
+            size_t _max = length;
+            uint32_t _queryIndex = (uint32_t) queryIndex;
+            size_t * _outValue = &value;
+            size_t * _outValueLength = &length;
+            size_t _oldOutValue = *_outValue;
+            size_t _oldOutValueLength = *_outValueLength;
+            assert( 0 < _max );
+            assert( __CPROVER_r_ok( _buf, _max ) );
+            assert( __CPROVER_w_ok( _outValue, sizeof( *_outValue ) ) );
+            assert( __CPROVER_w_ok( _outValueLength, sizeof( *_outValueLength ) ) );
+            assert( *_outValueLength <= _max );
+            *_outValue = nondet_size_t();
+            *_outValueLength = nondet_size_t();
+            bool _retval = nondet_bool();
+            __CPROVER_assume( _retval == true || _retval == false );
+            __CPROVER_assume( _retval ? ( 0 <= *_outValue && *_outValue < _max ) : ( *_outValue == _oldOutValue ) );
+            __CPROVER_assume( _retval ? ( 0 < *_outValueLength && *_outValueLength <= _max - *_outValue ) : ( *_outValueLength == _oldOutValueLength ) );
+            __CPROVER_assume( (_retval && _buf[ *_outValue ] == '"') ==> (2 <= *_outValueLength));
+            found = _retval;
+
+            if(found) {
+                dummy_max_before = dummy_max_before;
+                size_t dummy_max = max;
+                dummy_start_before = dummy_start_before;
+                size_t dummy_start = start;
+                dummy_value_before = dummy_value_before;
+                size_t dummy_value = value;
+                dummy_buf_value_before = dummy_buf_value_before;
+                char dummy_buf_value = buf[start + value];
+                dummy_length_before = dummy_length_before;
+                size_t dummy_length = length;
+                assert((buf[start + value] == '"') ==> length >= 2);
+            }
         }
         else
         {
@@ -1653,8 +1676,50 @@ __CPROVER_ensures( ( ( ( ( ( __CPROVER_return_value == JSONPartial ) || ( __CPRO
                 ret = JSONBadParameter;
                 break;
             }
-            found = objectSearch( &buf[ start ], length, &query[ queryStart ], keyLength, &value, &length );    
-            assert(false);     
+            char dummy_buf_value_before = buf[value];
+            size_t dummy_value_before = value;
+            size_t dummy_length_before = length;
+            size_t dummy_start_before = start;
+            size_t dummy_max_before = max;
+            /*
+            found = objectSearch( &buf[ start ], length, &query[ queryStart ], keyLength, &value, &length );
+            */
+            const char * _buf = &buf[ start ];
+            size_t _max = length;
+            char * _query = (uint32_t) &query[ queryStart ];
+            size_t _queryLength = keyLength;
+            size_t * _outValue = &value;
+            size_t * _outValueLength = &length;
+            size_t _oldOutValue = *_outValue;
+            size_t _oldOutValueLength = *_outValueLength;
+            assert( 0 < _max );
+            assert( __CPROVER_r_ok( _buf, _max ) );
+            assert( __CPROVER_r_ok( _query, _queryLength ) );
+            assert( __CPROVER_w_ok( _outValue, sizeof( *_outValue ) ) );
+            assert( __CPROVER_w_ok( _outValueLength, sizeof( *_outValueLength ) ) );
+            assert( *_outValueLength <= _max );
+            *_outValue = nondet_size_t();
+            *_outValueLength = nondet_size_t();
+            bool _retval = nondet_bool();
+            __CPROVER_assume( _retval == true || _retval == false );
+            __CPROVER_assume( _retval ? ( 0 <= *_outValue && *_outValue < _max ) : ( *_outValue == _oldOutValue ) );
+            __CPROVER_assume( _retval ? ( 0 < *_outValueLength && *_outValueLength <= _max - *_outValue ) : ( *_outValueLength == _oldOutValueLength ) );
+            __CPROVER_assume( (_retval && _buf[ *_outValue ] == '"') ==> (2 <= *_outValueLength));
+            found = _retval;
+            if(found) {
+                dummy_max_before = dummy_max_before;
+                size_t dummy_max = max;
+                dummy_start_before = dummy_start_before;
+                size_t dummy_start = start;
+                dummy_value_before = dummy_value_before;
+                size_t dummy_value = value;
+                dummy_buf_value_before = dummy_buf_value_before;
+                char dummy_buf_value = buf[start + value];
+                dummy_length_before = dummy_length_before;
+                size_t dummy_length = length;
+                assert((buf[start + value] == '"') ==> length >= 2);
+            }
+
         }
 
         if( found == false )
@@ -1669,13 +1734,13 @@ __CPROVER_ensures( ( ( ( ( ( __CPROVER_return_value == JSONPartial ) || ( __CPRO
         {
             i++;
         }
-        run_once = true;
     }
 
     if( ret == JSONSuccess )
     {
         *outValue = start;
         *outValueLength = length;
+        assert((buf[start] == '"') ==> length >= 2);
     }
 
     return ret;

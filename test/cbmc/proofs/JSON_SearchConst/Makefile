@@ -12,13 +12,14 @@ CBMC_OBJECT_BITS = 12
 
 USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver kissat
 
-USE_FUNCTION_CONTRACTS += arraySearch
-USE_FUNCTION_CONTRACTS += objectSearch
-USE_FUNCTION_CONTRACTS += skipAnyScalar
-USE_FUNCTION_CONTRACTS += skipCollection
-USE_FUNCTION_CONTRACTS += skipDigits
-USE_FUNCTION_CONTRACTS += skipSpace
-USE_FUNCTION_CONTRACTS += skipString
+USE_FUNCTION_CONTRACTS += multiSearch
+# USE_FUNCTION_CONTRACTS += arraySearch
+# USE_FUNCTION_CONTRACTS += objectSearch
+# USE_FUNCTION_CONTRACTS += skipAnyScalar
+# USE_FUNCTION_CONTRACTS += skipCollection
+# USE_FUNCTION_CONTRACTS += skipDigits
+# USE_FUNCTION_CONTRACTS += skipSpace
+# USE_FUNCTION_CONTRACTS += skipString
 
 include ../Makefile-json.common
 
